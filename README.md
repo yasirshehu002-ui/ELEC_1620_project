@@ -1,146 +1,182 @@
-![](./resources/official_armmbed_example_badge.png)
-# Bare metal blinky Mbed OS example
+# Washing Machine Control Panel - Mbed OS Project
 
-This example shows how to achieve memory optimizations in Mbed OS. Starting with a blinky application, the example illustrates how to enable the bare metal profile and further memory optimizations.
+This project is an embedded systems simulation of a washing machine control panel developed using Mbed OS. The system uses switches, potentiometers, sensors, LEDs, a buzzer, and a 7-segment display to model the basic operation of a washing machine.
 
-You can build this project with all supported [Mbed OS build tools](https://os.mbed.com/docs/mbed-os/latest/tools/index.html). However, this example project specifically refers to the command-line interface tool [Arm Mbed CLI](https://github.com/ARMmbed/mbed-cli#installing-mbed-cli).
+The project allows the user to power the machine on/off, detect whether the washing tub is loaded, select a washing mode, choose a temperature setting, confirm the cycle, and run a timed washing sequence.
 
-1. Install Mbed CLI.
-1. From the command-line, import the example: `mbed import mbed-os-example-blinky-baremetal`
-1. Change the current directory to where the project was imported.
+## Project Overview
 
-## Application functionality
+The washing machine control panel includes the following functions:
 
-The `main()` function toggles the state of a digital output connected to an LED on the board.
+- Power ON/OFF control
+- Load detection using a force-sensitive resistor
+- Washing mode selection using a potentiometer
+- Temperature selection using a second potentiometer
+- Visual feedback using LEDs and a 7-segment display
+- Warning and completion sounds using a buzzer
+- Basic solar activity detection using an LDR sensor
+- Washing cycle animation and countdown display
 
-## Building and running
+## Hardware Used
 
-1. Connect a USB cable between the USB port on the target and the host computer.
-1. Run the following command to build the example project, program the microcontroller flash memory, and open a serial terminal:
+- Mbed-compatible microcontroller board
+- Force-sensitive resistor (FSR)
+- Light-dependent resistor (LDR)
+- Two potentiometers
+- Three SPDT switches/buttons
+- RGB LED
+- Three individual LEDs
+- Buzzer
+- 7-segment display
+- USB serial connection for status messages
 
-   ```
-   $ mbed compile -m <TARGET> -t <TOOLCHAIN> --flash --sterm
-   ```
+## Pin Connections
 
+| Component | Pin |
+|---|---|
+| FSR sensor | PA_1 |
+| LDR sensor | PC_2 |
+| Mode potentiometer | PA_5 |
+| Temperature potentiometer | PA_7 |
+| Button 1 / Confirm | PC_10 |
+| Button 2 / Reset/Continue | PC_11 |
+| Button 3 / Power | PD_2 |
+| Power LED | PC_0 |
+| LED bus | PC_1, PB_0, PA_4 |
+| Buzzer | PA_15 |
+| RGB green LED | PB_5 |
+| RGB red LED | PB_3 |
+| RGB blue LED | PB_4 |
+| 7-segment display | PA_11, PA_12, PB_1, PB_15, PB_14, PB_12, PB_11 |
+| Decimal point | PB_2 |
 
-Your PC may take a few minutes to compile your code.
+## Washing Modes
 
-The binary is located at `./BUILD/<TARGET>/<TOOLCHAIN>/mbed-os-example-blinky-baremetal.bin`.
+The washing mode is selected using the first potentiometer.
 
-Alternatively, you can manually copy the binary to the target, which gets mounted on the host computer through USB.
+| Mode Value | Washing Mode | Display |
+|---|---|---|
+| 1 | Cotton | 1 |
+| 2 | Eco | 2 |
+| 3 | Quick Wash | 3 |
 
-Depending on the target, you can build the example project with the `GCC_ARM`, `ARM` or `IAR` toolchain. After installing Arm Mbed CLI, run the command below to determine which toolchain supports your target:
+## Temperature Settings
 
-```
-$ mbed compile -S
-```
+The temperature is selected using the second potentiometer.
 
-## Expected output 
+| Temperature Value | Temperature | LED Indication |
+|---|---|---|
+| 1 | Cold | Blue LED |
+| 2 | Hot | Red LED |
 
-The LED on your target turns on and off every 500 milliseconds, and the serial terminal shows an output similar to: 
+## Cycle Times
 
-```
---- Terminal on /dev/tty.usbmodem21102 - 9600,8,N,1 ---
-This is the bare metal blinky example running on Mbed OS 99.99.99.
-``` 
+| Mode | Temperature | Displayed Time |
+|---|---|---|
+| Cotton | Cold | 60 minutes |
+| Cotton | Hot | 60 minutes |
+| Eco | Cold | 45 minutes |
+| Eco | Hot | 45 minutes / 60 minutes depending on programmed behaviour |
+| Quick Wash | Cold | 20 minutes |
+| Quick Wash | Hot | 20 minutes |
 
-## Configuring the application
+## System Operation
 
-### The bare metal profile
+1. The washing machine starts in the OFF state.
+2. Pressing the power button toggles the machine ON.
+3. When ON, the system checks the tub load using the FSR sensor.
+4. If the load is too high, the red LED turns on and a warning sound plays.
+5. If the load is acceptable, the green LED indicates that the tub is loaded.
+6. The user selects a washing mode using the first potentiometer.
+7. The user selects a temperature using the second potentiometer.
+8. The selected mode and temperature are shown using LEDs and the 7-segment display.
+9. The user confirms the selection using the confirm button.
+10. A washing cycle animation is displayed.
+11. The countdown/timer runs.
+12. When the cycle is complete, the buzzer plays an end sound.
+13. The system resets and allows the user to make a new selection.
 
-The bare metal profile is a configuration of Mbed OS that excludes the RTOS, as well as other features. We designed it specifically for ultraconstrained devices because it gives you more control over the system. For more details, please see [the bare metal documentation](https://os.mbed.com/docs/mbed-os/latest/reference/mbed-os-bare-metal.html)
+## Features
 
-To build with the bare metal profile, the application configuration file must contain:
+### Load Detection
 
-```json
-{
-    "requires": ["bare-metal"]
-}
-```
+The FSR sensor is used to check the washing tub load.
 
-### Futher optimizations
-Some of the configurations shown below are already set by default in `targets/targets.json` and `platform/mbed_lib.json`.
-#### Linking with smaller C libraries
+- If the FSR value is above the overload threshold, the system displays a warning.
+- If the load is within an acceptable range, the system allows the user to continue.
 
-Both the `ARM` and `GCC_ARM` toolchains support optimized versions of their C standard libraries, microlib and newlib-nano. We recommend using them with the bare metal profile.
+### Mode Selection
 
-To build with the smaller C libraries, modify the application configuration file:
+The first potentiometer controls the washing mode. Depending on the potentiometer value, the user can choose between:
 
-```json
-{
-    "target_overrides": {
-        "*": {
-            "target.c_lib": "small"
-        }
-    }
-}
-```
+- Cotton
+- Eco
+- Quick Wash
 
-The build system reverts to the standard C library if support for the small C library is not enabled for your target. You can find more information [here]( https://github.com/ARMmbed/mbed-os-5-docs/blob/development/docs/program-setup/bare_metal/c_small_libs.md).
+### Temperature Selection
 
-#### Using Mbed minimal printf library
+The second potentiometer controls the temperature setting. The RGB LED provides feedback:
 
-Mbed OS offers a smaller `printf()` alternative. The [minimal printf](https://github.com/ARMmbed/mbed-os/blob/master/platform/source/minimal-printf/README.md) library implements a subset of the `v/s/f/printf` function family, and you can disable floating points to further reduce code size.
+- Blue LED: Cold wash
+- Red LED: Hot wash
 
-To build with the minimal printf library and disable floating points printing, you need to modify the application configuration file:
+### 7-Segment Display
 
-```json
-{
-    "target_overrides": {
-        "*": {
-            "target.printf_lib": "minimal-printf",
-            "platform.minimal-printf-enable-floating-point": false
-        }
-    }
-}
-```
+The 7-segment display is used to show:
 
-Further optimizations are possible. For more details, please see the minimal printf README.
+- Selected washing mode
+- Estimated cycle time
+- Countdown values
+- Washing animation
 
-#### Using a minimal console
+### Buzzer Feedback
 
-If your application only needs unbuffered I/O operations, you can save additional memory by using a configuration of the platform library, which removes file handling functionality from the [system I/O retarget code](https://github.com/ARMmbed/mbed-os/blob/master/platform/source/mbed_retarget.cpp).
+The buzzer provides audio feedback for:
 
-To build with the minimal console functionality, modify the application configuration file:
+- Overload warning
+- End of washing cycle
 
-```json
-{
-    "target_overrides": {
-        "*": {
-            "platform.stdio-minimal-console-only": true
-        }
-    }
-}
-```
+### Solar/LDR Check
 
-#### Memory comparison
+When the washing machine is powered off, the LDR sensor is checked to simulate whether solar input is active.
 
-The below table shows the result for the blinky bare metal application compiled with the release profile on K64F for the GCC_ARM toolchain.
+## Main Functions
 
-The baseline configuration used is the blinky bare metal application built with the standard C library.
+| Function | Description |
+|---|---|
+| `init_leds()` | Turns off the LED bus |
+| `init_buttons()` | Initialises the button inputs |
+| `SegDis_init()` | Clears the 7-segment display |
+| `init_multiled()` | Turns off the RGB LED |
+| `load_check()` | Checks whether the washing tub is overloaded |
+| `select_mode()` | Reads the mode potentiometer and selects the washing mode |
+| `select_temp()` | Reads the temperature potentiometer and selects hot or cold |
+| `confirm_selection_and_run()` | Displays the selected wash program |
+| `timer()` | Runs the washing cycle countdown |
+| `SegDis_animation()` | Displays a simple washing/running animation |
+| `play_note()` | Plays buzzer tones |
+| `solar_check()` | Checks LDR value when the machine is off |
+| `power_off()` | Turns off outputs and resets the system |
 
-Mbed OS release: mbed-os-6.0.0-alpha-2
+## Serial Monitor Output
 
-|Standard C lib|Small C lib|Minimal printf|Minimal console|RAM|Flash|
-| :---:        | :---:     | :---:        | :---:         | :---: | :---: |
-| X            |           |              |               | 0 | 0 |
-|              | X         |              |               | -2,592 | -28,581 |
-|              | X         | X            |               | -2,592 | -29,918 |
-|              | X         | X            | X             | -2,592 | -30,810 |
+The program prints status messages through serial communication at 115200 baud. These messages include:
 
-## Troubleshooting 
+- Power status
+- Tub load status
+- Selected mode
+- Selected temperature
+- Cycle progress
+- Completion message
+- Solar/LDR status
 
-If you have problems, you can review the [documentation](https://os.mbed.com/docs/latest/tutorials/debugging.html) for suggestions on what could be wrong and how to fix it. 
+Example output:
 
-## Related links 
-
-- [Mbed OS bare metal](https://os.mbed.com/docs/mbed-os/latest/reference/mbed-os-bare-metal.html).
-- [Mbed OS configuration](https://os.mbed.com/docs/latest/reference/configuration.html). 
-- [Mbed OS serial communication](https://os.mbed.com/docs/latest/tutorials/serial-communication.html). 
-- [Mbed boards](https://os.mbed.com/platforms/).
-
-### License and contributions
-
-The software is provided under the Apache-2.0 license. Contributions to this project are accepted under the same license. Please see [contributing.md](./CONTRIBUTING.md) for more information.
-
-This project contains code from other projects. The original license text is included in those source files. They must comply with our license guide.
+```text
+power on, please load tub
+tub loaded
+please select mode and temperature
+mode: quick wash, temperature: cold, time: 20 mins
+cycle in progress
+completed!!
+make new selections
