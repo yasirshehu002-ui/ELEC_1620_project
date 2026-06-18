@@ -35,7 +35,7 @@ DigitalOut power_led(PC_0);
 BusOut leds_bus(PC_1, PB_0, PA_4);
 PwmOut buzzer(PA_15);
 
-//segment       A       B     C      D    E     F      G        
+//7-segment display      A       B     C      D    E     F      G        
 BusOut SegDis(PA_11, PA_12, PB_1, PB_15, PB_14, PB_12, PB_11);
 DigitalOut decimal_point(PB_2);
 
@@ -55,7 +55,7 @@ const int end_sound[] = {NOTE_C5, NOTE_C5, NOTE_C5, NOTE_C5, NOTE_C5, NOTE_C5, N
 float fsr_value=0.0; // variable to read fsr value
 int fsr_value1; // variable to store read fsr value
 int ldr_value=0; // variable to read LDR value
-int ldr_value1=0;
+
 
  
 bool pwr_state = false; // varible to store power state 
@@ -64,13 +64,11 @@ int mode_var = 0; // variable to read mode
 int mode_var1=0; // variable to store read mode
 int temp_var = 0; // variable to read temperature 
 int temp_var1=0;  // variable to store read temperature 
-int mode_var2=0;
-int temp_var2=0;
 int run_aninmation[] = {0x00, 0x01, 0x41, 0x49, 0x41, 0x01, 0x00 }; // variable for run animation
 
 // functions
 void load_check(); // function to check load 
-void solar_check(int current_ldr);
+bool solar_check(int current_ldr); // to activate solar panel
 void play_note(int frequency); // buzzer function
 void init_leds(); // to switch off LEDS
 void select_mode(); // to select mode
@@ -82,24 +80,27 @@ void confirm_selection_and_run(); // to run
 void timer(); // timer, while running 
 void SegDis_animation(); // run animation
 void power_off(); // power off
+void init_power_led();
 
 
 int main()
 {
-// turn off all displays 
+// turn off all components 
  init_leds();
  init_buttons();
  SegDis_init();
+ init_power_led();
     while (true)
    {
        if(button3){pwr_state=!pwr_state;} // toggle status of the washing machine
-        if(pwr_state)
+        if(pwr_state || solar_check(ldr_value)) // if power button pressed or solar panel detects light
         
         // if toggled on, then these functions are implemented in order 
     {
             power_led.write(1);
-            printf(" power on, please laod tub \n");
+            
             load_check();
+            
             if(button2.read()){
             init_multiled();
             init_leds();
@@ -136,9 +137,8 @@ int main()
         // if toggled off, switch off washing machine and check ldr status for solar 
         printf("power off\n\n");
         ldr_value = ldr.read_u16()/32768; 
-        solar_check(ldr_value);
-            
-        }     
+        }
+        
 
             ThisThread::sleep_for(500ms); 
 
@@ -156,6 +156,10 @@ void init_multiled(){
 void init_leds()
 {
 leds_bus.write(0);   //turn off leds by default
+}
+
+void init_power_led(){
+power_led.write(0); // switch off power LED
 }
 
 void init_buttons(){ //turn off internal pull up / pull down resistors
@@ -201,6 +205,14 @@ void load_check()
              }  
               printf("tub loaded \n");         
          }
+
+         else if(fsr_value < 30 ){
+            
+             blue_led.write(0);
+             red_led.write(0);  
+             for(int i = 0; i < 10; i++){            
+             }  
+             printf(" power on, please laod tub \n");         }
          break;
 }
 }
@@ -208,26 +220,33 @@ void load_check()
 
 
 void select_mode()
+
 {
 mode_var = pot1.read_u16()/13107;   // potentiometer1 is used to chose between cotton, eco , quickwash  
         init_multiled(); 
        /*LEDs and display are written based on potentiometer value
        and the combination of values are stored in mode_var1*/
-        if(mode_var == 1){
+        if(mode_var == 1){ // display 1 for cotton wash
         leds_bus.write(4);
         SegDis.write(0x06);
         mode_var1 = 1;
         }
-        else if(mode_var == 2){
+        else if(mode_var == 2){ // display 2 for eco wash
             leds_bus.write(6);
             SegDis.write(0x5B);
             mode_var1 = 2;
 
         }
-        else if(mode_var == 3){
+        else if(mode_var == 3){ // display 3 for quick wash
             leds_bus.write(7);
             SegDis.write(0x4F);
             mode_var1 = 3;
+
+        }
+        else if(mode_var == 4){ // display 4 for spin and dry
+            leds_bus.write(5);
+            SegDis.write(0x66);
+            mode_var1 = 4;
 
         }
 }
@@ -238,17 +257,24 @@ void select_temp(){
       /* RGB LED and display are written based on potentiometer value
        and the combination of values are stored in temp_var1 */
     
-        if(temp_var == 1){
+        if(temp_var == 1){ // for cold 
             blue_led.write(1);
             green_led.write(0);
             red_led.write(0);   
             temp_var1 = 1;
         }
-        else if(temp_var == 2){
+        else if(temp_var == 2){ // for hot
             blue_led.write(0);
             green_led.write(0);
             red_led.write(1);
             temp_var1=2;
+
+}
+        else if(temp_var == 3){ // to set automatic temperature for the spin & dry function
+            blue_led.write(1);
+            green_led.write(1);
+            red_led.write(1);
+            temp_var1=3;
 
 }
 }
@@ -358,6 +384,28 @@ void confirm_selection_and_run(){ //function to display the selection from the u
             break; }
     }
     }
+     else if(mode_var1==4 && temp_var1 == 3){ // spin and dry
+     while(1){
+             printf("mode: spin and dry , temperature: automatic , time: 80 mins\n");
+              SegDis.write(hexDis[8]);
+              green_led.write(1);  
+              red_led.write(1);
+              blue_led.write(1);                    
+              ThisThread::sleep_for(1000ms);
+              SegDis.write(hexDis[0]);
+              green_led.write(0);
+              red_led.write(1);
+              blue_led.write(1);    
+              ThisThread::sleep_for(1000ms);
+              
+              if(button2.read()){
+            SegDis_init();
+           
+                
+            break; }
+    }
+    }
+
 }
 
 
@@ -401,7 +449,7 @@ void timer(){
 }
 
 
-void SegDis_animation(){ // function to switch nonn desired segments only for animation 
+void SegDis_animation(){ // function to switch on desired segments only for animation 
     ThisThread::sleep_for(200ms);
     SegDis.write(0x00);
     ThisThread::sleep_for(200ms);
@@ -436,21 +484,24 @@ void power_off()
 
 }
 
-void solar_check(int current_LDR)
+bool solar_check(int current_LDR)
 {
     while(1){
-    {
+        // When light is shun on the LDR it returns digital one 
+
          
          if(current_LDR > 0){
-             printf("solar panel active \n\n ");
-             printf("ldr_value:%d\t\t\n", current_LDR);
+             printf("solar panel active \n\n "); 
+             return true;
          }
          else if(current_LDR < 0){
-             printf("solar panel off \n");
+             init_power_led();
+             return false;
             
              }  
                        
-         }
+         return false;
          break;
 }
 }
+
