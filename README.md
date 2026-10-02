@@ -19,6 +19,9 @@ The washing machine control panel includes:
 - Washing cycle animation
 - Countdown-style timer display
 
+## Hardware Implementation
+<img width="2846" height="1152" alt="IMG_1102" src="https://github.com/user-attachments/assets/0849cf3d-5f71-4fb2-b102-233f8b362c74" />
+
 ## Hardware Used
 
 - Mbed-compatible microcontroller board
